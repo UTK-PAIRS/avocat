@@ -1,14 +1,14 @@
-#include <unistd.h>
-#include <signal.h>
-#include <pty.h>
-#include <utmp.h>
-
 #include <iostream>
 #include <thread>
+
+#include <unistd.h>
+#include <signal.h>
 
 #include "avocat.hpp"
 
 #define DEBUG if (1)
+
+#define BUFF_SIZE 512
 
 namespace avocat {
     const std::vector <std::string> & Container::get_history(int key) {
@@ -60,9 +60,11 @@ namespace avocat {
     }
 
     void Messenger::redirect_fd(int from, int to) {
-        char c[1];
-        while (read(from, c, 1) && c[0] != '\0') {
-            if (write(to, c, 1) != 1) {
+        char buff[BUFF_SIZE];
+        int len;
+
+        while ((len = read(from, buff, BUFF_SIZE - 1)) && buff[0] != '\0') {
+            if (write(to, buff, len) != len) {
                 fprintf(stderr, "failed to write to fd %d!\n", to);
                 perror("");
             } else {
