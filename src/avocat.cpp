@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <signal.h>
+#include <ncurses.h>
 
 #include "avocat.hpp"
 
@@ -20,6 +21,13 @@ namespace avocat {
         Messenger out;
         //Messenger err;
 
+        // Set ncurses settings
+        initscr();
+        noecho();
+        cbreak();
+        keypad(stdscr, TRUE);
+        nodelay(stdscr, FALSE);
+
         if ((child_pid = fork()) != 0) {
             // parent
             in.set_mode(Messenger::mode_f::mode_write);
@@ -30,8 +38,8 @@ namespace avocat {
             if (fdopen(in.get_fd(), "w") == nullptr) perror("parent fdopen in");;
             if (fdopen(out.get_fd(), "r") == nullptr) perror("parent fdopen out");;
 
-            std::thread redir_stdin(Messenger::redirect_fd, STDIN_FILENO, in.get_fd());
-            std::thread redir_stdout(Messenger::redirect_fd, out.get_fd(), STDOUT_FILENO);
+            std::thread redir_stdin(Messenger::redirect_fd, STDIN_FILENO, in.get_fd(), true);
+            std::thread redir_stdout(Messenger::redirect_fd, out.get_fd(), STDOUT_FILENO, false);
 
             redir_stdin.join();
             redir_stdout.join();
@@ -40,7 +48,7 @@ namespace avocat {
             in.set_mode(Messenger::mode_f::mode_read);
             out.set_mode(Messenger::mode_f::mode_write);
 
-            int ttymaster, ttyslave, pid;
+            //int ttymaster, ttyslave, pid;
 
             // set "in" messenger to stdin 
             in.replace_fd(STDIN_FILENO);
@@ -56,19 +64,66 @@ namespace avocat {
 
     Container::~Container() {
         if (child_pid != 0) (void) kill(child_pid, 15);
+        endwin();
+        
         return;
     }
 
-    void Messenger::redirect_fd(int from, int to) {
-        char buff[BUFF_SIZE];
-        int len;
+    void Messenger::redirect_fd(int from, int to, bool curses) {
+        #define ECHOIFCHAR(x) if (x < (((1 << (sizeof(char) * 8)) / 2) - 1)) echochar((char) x)
 
-        while ((len = read(from, buff, BUFF_SIZE - 1)) && buff[0] != '\0') {
-            if (write(to, buff, len) != len) {
-                fprintf(stderr, "failed to write to fd %d!\n", to);
-                perror("");
-            } else {
-                //DEBUG {fprintf(stderr, "WRITTEN: %c\n", c[0]);}
+        std::string l;
+        
+        if (curses) {
+            int i;
+            while ((i = getch()) && i != '\0') {
+                /*if (write(to, &i, sizeof(i)) != sizeof(i)) {
+                    fprintf(stderr, "failed to write to fd %d!\n", to);
+                    perror("");
+                } else {*/
+                switch (i) {
+                    case KEY_BACKSPACE: {
+                        echochar('\b');
+                        echochar(' ');
+                        echochar('\b');
+
+                        if (l.length()) (void) l.pop_back();
+
+                        break;
+                    }
+
+                    case '\t': break;
+
+                    case '\n': {
+                        echochar('\n');
+                        l.push_back('\n');
+                        if (write(to, l.c_str(), l.length()) != l.length()) {
+                            fprintf(stderr, "failed to write to fd %d!\n", to);
+                            perror("");
+                        }
+                        l.clear();
+                        break;
+                    }
+
+                    default: {
+                        l.push_back((char) i);
+                        ECHOIFCHAR(i);
+                        break;
+                    }
+                }
+                    //DEBUG {fprintf(stderr, "WRITTEN: %d (%c)\n", i, (char) i);}
+            }
+        }
+        else {
+            char buff[BUFF_SIZE];
+            int len;
+            while ((len = read(from, buff, BUFF_SIZE - 1)) && buff[0] != '\0') {
+                if (write(to, buff, len) != len) {
+                    fprintf(stderr, "failed to write to fd %d!\n", to);
+                    perror("");
+                } else {
+                    //DEBUG {fprintf(stderr, "WRITTEN: %c\n", c[0]);}
+                }
             }
         }
     }

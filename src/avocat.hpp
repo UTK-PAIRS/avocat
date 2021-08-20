@@ -32,7 +32,7 @@ namespace avocat {
                 mode_write
             };
 
-            static void redirect_fd(int from, int to);
+            static void redirect_fd(int from, int to, bool curses=false);
 
             void set_mode(int mode);
 

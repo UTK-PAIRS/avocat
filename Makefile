@@ -9,7 +9,7 @@ OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 CPPFLAGS := -Iinclude
 CFLAGS   := -Wall
 LDFLAGS  := 
-LDLIBS   := -lpthread
+LDLIBS   := -lpthread -lncurses
 CC       := g++
 
 .PHONY: all clean
