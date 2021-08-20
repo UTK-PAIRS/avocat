@@ -1,29 +1,17 @@
-SRC_DIR := src
-OBJ_DIR := obj
 BIN_DIR := bin
 
-EXE := $(BIN_DIR)/avocat
-SRC := $(wildcard $(SRC_DIR)/*.cpp)
-OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+PRJ := avocat avoexe
+BIN := $(addprefix $(BIN_DIR)/,$(PRJ))
 
-CPPFLAGS := -Iinclude
-CFLAGS   := -Wall
-LDFLAGS  := 
-LDLIBS   := -lpthread -lncurses
-CC       := g++
+all: $(BIN) $(PRJ)
 
-.PHONY: all clean
+$(BIN): $($@:$(BIN_DIR)/%=%)
 
-all: $(EXE)
+$(PRJ): $(BIN_DIR)
+	cd $@; make
 
-$(EXE): $(OBJ) | $(BIN_DIR)
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
-
-$(BIN_DIR) $(OBJ_DIR):
+$(BIN_DIR):
 	mkdir -p $@
 
 clean:
-	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR)
+	@$(RM) -rv $(BIN_DIR)
