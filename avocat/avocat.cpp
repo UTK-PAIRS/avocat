@@ -30,12 +30,10 @@ int main(int argc, char *argv[])
     {
         combinedArgs += ' ';
         combinedArgs +=  argv[i];
-    }
+    }    
 
-    cout << combinedArgs << '\n';
+    system(combinedArgs.c_str());
 
-    //  Use system comand   //
-    //system(combinedArgs);
 
     return 1;
 }
