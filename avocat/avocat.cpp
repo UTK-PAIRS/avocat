@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     //  Check argc  //
     if(argc <= 1)
     {
-        cerr << "Not enough argumnts.\n";
+        cerr << "Not enough arguments.\n";
         return 1;
     }
 
