@@ -7,3 +7,5 @@
  * Addendum: There was a dramatic revelation in regards to something "monetary" -- If you catch my drift. 
 
 8/23/2021 evening -- Online meeting
+
+8/24/2021 evening -- Group pairs meeting in which nobody presented anything because UTK doesn't know how to wifi?
