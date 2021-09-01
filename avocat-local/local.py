@@ -35,7 +35,5 @@ def run():
     except KeyboardInterrupt:
         server.server_close()
 
-    
-
 
 run()
