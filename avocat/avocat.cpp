@@ -6,103 +6,14 @@
 
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h> 
 
 #include "avocat.hpp"
 
 #define DEBUG if (1)
-#define BUFF_SIZE 512
 
 namespace avocat {
-
-    std::vector <std::string>& Container::get_history(int key) const {
-        return ((std::vector <std::string>* const) history)[key];
-    }
-
-    Container::Container(std::string cmd) {
-        // create messengers for in / out / err
-        Messenger in;
-        Messenger out;
-        Messenger err;
-
-        int ret = -1;                     // return value of thread
-        std::atomic <bool> ready(false);  // parent is ready for cmd execution
-
-        // create execution thread
-        std::thread runner(Container::run_cmd, cmd, in, out, err, std::ref(ret), std::ref(ready));
-
-        // redirect
-        std::thread redir_stdin(Messenger::redirect_fd, STDIN_FILENO, in.get_fd(), true);
-        std::thread redir_stdout(Messenger::redirect_fd, out.get_fd(), STDOUT_FILENO, false);
-
-        in.set_mode(Messenger::mode_f::mode_write);
-        out.set_mode(Messenger::mode_f::mode_read);
-
-        // indicate readiness to thread
-        ready = true;
-
-        /*
-        if ((child_pid = fork()) != 0) {
-            // parent
-
-            // configure messengers
-            in.set_mode(Messenger::mode_f::mode_write);
-            out.set_mode(Messenger::mode_f::mode_read);
-            //err.set_mode(Messenger::mode_f::read);
-
-            // test that in and out fds are correctly configured
-            if (fdopen(in.get_fd(), "w") == nullptr) perror("parent fdopen in");
-            if (fdopen(out.get_fd(), "r") == nullptr) perror("parent fdopen out");
-
-            // redirect messengers
-            std::thread redir_stdin(Messenger::redirect_fd, STDIN_FILENO, in.get_fd(), true, nullptr);
-            std::thread redir_stdout(Messenger::redirect_fd, out.get_fd(), STDOUT_FILENO, false, nullptr);
-
-            // wait for redirection to finish
-            redir_stdin.join();
-            redir_stdout.join();
-
-            int status;
-     
-            waitpid(pid, &status, 0);
-        } else {
-            // child
-
-            // configure messengers
-            in.set_mode(Messenger::mode_f::mode_read);
-            out.set_mode(Messenger::mode_f::mode_write);
-
-            exit(system(cmd));
-        }
-        */
-       runner.join();
-       redir_stdin.join();
-       redir_stdout.join();
-    }
-
-    Container::~Container() {
-    }
-
-    void Container::run_cmd(std::string cmd, Messenger in, Messenger out, Messenger err, int& ret, std::atomic<bool>& ready) {
-        in.set_mode(Messenger::mode_f::mode_read);
-        out.set_mode(Messenger::mode_f::mode_write);
-
-        while (!ready.load());
-
-        // set "in" messenger to stdin 
-        in.replace_fd(STDIN_FILENO);
-        stdin = fdopen(in.get_fd(), "r");
-
-        // set "out" messenger to stdout
-        out.replace_fd(STDOUT_FILENO);
-        stdout = fdopen(out.get_fd(), "w");
-
-        std::cout << "yooo we gucci gang\n";
-    }
-
-    void Messenger::redirect_fd(int from, int to, bool curses) {
-        // line buffer
-        std::string l;
-        
+    void Messenger::redirect_fd(int from, int to, std::string& history) {
         char buff[BUFF_SIZE];
         int len;
         while ((len = read(from, buff, BUFF_SIZE - 1)) && buff[0] != '\0') {
@@ -110,6 +21,7 @@ namespace avocat {
                 fprintf(stderr, "failed to write to fd %d!\n", to);
                 perror("");
             }
+            history += buff;
         }
     }
 
@@ -188,6 +100,42 @@ namespace avocat {
             fprintf(stderr, "dupe machine broke!\n");
             perror("");
             return;
+        }
+    }
+
+    int execute_command(int argc, char *const argv[], char *const envp[], std::string history[2]) {
+        Messenger out;
+        Messenger err;
+
+        int childpid;
+
+        if (childpid = fork()) {
+            // parent
+            int status = 0;
+
+            out.set_mode(Messenger::mode_f::mode_read);
+            err.set_mode(Messenger::mode_f::mode_read);
+
+            std::thread redir_out(Messenger::redirect_fd, out.get_fd(), STDOUT_FILENO, std::ref(history[0])); 
+            std::thread redir_err(Messenger::redirect_fd, err.get_fd(), STDERR_FILENO, std::ref(history[1])); 
+
+            while (wait(&status) > 0);
+
+            redir_out.join();
+            redir_err.join();
+
+            return status;
+        } else {
+            // child
+            out.set_mode(Messenger::mode_f::mode_write);
+            err.set_mode(Messenger::mode_f::mode_write);
+
+            out.replace_fd(STDOUT_FILENO);
+            err.replace_fd(STDERR_FILENO);
+
+            execvpe(argv[1], argv + 1, envp);
+
+            return -1;
         }
     }
 }

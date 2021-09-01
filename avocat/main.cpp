@@ -12,33 +12,26 @@
 using namespace std;
 
 
-//  Placeholder //
-int main(int argc, char *argv[])
+int main(int argc, char *const argv[], char *const envp[])
 {
-    /*
-    string combinedArgs;
-
-    //  Check argc  //
-    if(argc <= 1)
-    {
-    cerr << "Not enough arguments.\n";
-    return 1;
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %.20s cmd args...\n", argv[0]);
+        return 0;
     }
 
-    //  Assigns first string    //
-    combinedArgs = argv[1];
+    string history[2] = {"", ""};
+    int ret;
 
-    //  Loop through string //
-    for(int i = 1; i < argc; i++)
-    {
-    combinedArgs += ' ';
-    combinedArgs +=  argv[i];
-    }    
+    if ((ret = avocat::execute_command(argc, argv, envp, history)) != 0) {
+        // return value was nonzero!
+        printf("%.20s finished with error code %d!\n", argv[1], ret);
 
-    system(combinedArgs.c_str());
-    */
+        // now we need to connect to the daemon
+        printf("Diagnosing...\n");
+    }
 
-    avocat::Container("echo this is a test");
+    cout << "from stdout: " << history[0];
+    cout << "from stderr: " << history[1];
 
     return 0;
 }

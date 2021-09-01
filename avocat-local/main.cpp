@@ -25,10 +25,9 @@
 
 int main(int argc, char** argv) {
     /* Create server and bind to port */
-    int server_fd;
+    int server_fd, port;
     struct sockaddr_in local_addr;
-    char buff[257];
-    uint16_t port;
+    char buff[BUFF_SIZE];
 
     bzero(&local_addr, sizeof(local_addr));
 
@@ -52,16 +51,29 @@ int main(int argc, char** argv) {
         perror("getsockname");
     }
 
-    printf("port number %d\n", ntohs(local_addr.sin_port));
+    port = ntohs(local_addr.sin_port);
+
+    printf("Predaemon running on port number %d\n", port);
 
     /* Create description file for daemon */
+    FILE* daemon_desc = nullptr;
+    std::string config_loc = std::string(getenv("HOME")) + "/" + CONFIG_LOC;
+    if ((daemon_desc = fopen(config_loc.c_str(), "w")) == nullptr) {
+        perror("Could not open config file");
+        return 1;
+    }
+    if (fwrite(&port, sizeof(port), 1, daemon_desc) != 1) {
+        perror("Could not write to config file");
+        return 1;
+    }
 
     /* Closing time */
     if (close(server_fd)) {
-        fprintf(stderr, "did not close!\n");
-        perror("");
+        perror("Error closing socket");
     }
 
-    // int r = daemon(0, 0);
+    if (1 || daemon(0, 0) != 0) {
+        perror("Failed to spawn daemon");
+    }
     return 0;
 }

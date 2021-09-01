@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#define BUFF_SIZE 512
+#define CONFIG_LOC ".avocat/config"
 namespace avocat {
     enum msg{
         program_start,
@@ -33,7 +35,7 @@ namespace avocat {
                 mode_write
             };
 
-            static void redirect_fd(int from, int to, bool curses=false);
+            static void redirect_fd(int from, int to, std::string& history);
 
             void set_mode(int mode);
 
@@ -45,21 +47,5 @@ namespace avocat {
             ~Messenger();
     };
 
-    class Container {
-        private:
-            std::vector <std::string> history[3];
-            static void run_cmd(std::string cmd, Messenger in, Messenger out, Messenger err, int& ret, std::atomic<bool>& ready);
-        
-        public:
-            enum s_key{
-                in,
-                out,
-                err
-            };
-
-            std::vector <std::string> & get_history(int key) const;
-
-            Container(std::string cmd);
-            ~Container();
-    };
+    int execute_command(int argc, char *const argv[], char *const envp[], std::string history[2]);
 }
