@@ -7,6 +7,7 @@ Ddescription: This file holds information (for now) about database,
 '''
 from flask import Flask, request
 from flask_restful import Resource, Api
+import json
 from requests import put, get
 from googlesearch import search
 import requests
@@ -25,14 +26,25 @@ class Solution:
 class Parser(Resource):
     def parse_result(self,link):
         #For now remove all user information and all information not directly relevant to the error
+        answertxt = ""
+        codetxt = ""
         raw = requests.get(link).text
         soup = BeautifulSoup(raw, 'html.parser')
-        answertxt = soup.find_all('div',class_="answer accepted-answer")
-        answer = ""
-        for paragraph in answertxt:
-            answer += str(paragraph.p)
+        answer = soup.find_all('div',class_="answer accepted-answer")
 
-        return answer
+        #If the answer has not been accepted
+        if len(answer) == 0:
+            answers = soup.find_all('div',class_="answer")
+            for response in answers:
+                if "data-highest-scored=\"1\"" in str(response):
+                    answertxt += str(response.p.string)
+                    codetxt += str(response.code.string)
+                    return (answertxt,codetxt)
+
+        for paragraph in answer:
+            answertxt += str(paragraph.p.string)
+            codetxt += str(paragraph.code.string)
+        return (answertxt,codetxt)
 
 
 class Server(Resource):
@@ -52,11 +64,12 @@ class Server(Resource):
         #    return {error:"apt-get install npm"}
         
         #Get first ten results from Google
-        results = search("stackoverflow "+error, tld='com', lang='en', num=3, start=0, stop=None, pause=2.0)
+        results = search(error, tld='com', lang='en', num=10, start=0, stop=None, pause=2.0)
         for result in results:
             print(result)
-            print(self.parser.parse_result(result))
-            return {error:self.parser.parse_result(result)}
+            if "stackoverflow.com" in result:
+                print(self.parser.parse_result(result))
+                return {error:self.parser.parse_result(result)}
 
 
 
