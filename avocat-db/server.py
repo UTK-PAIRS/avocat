@@ -26,10 +26,12 @@ class Parser(Resource):
     def parse_result(self,link):
         #For now remove all user information and all information not directly relevant to the error
         raw = requests.get(link).text
-        text = BeautifulSoup(raw, 'html.parser')
-        page =  text.find_all("div",class_="answer",itemprop="text")
-        print(page)
-        answer =post.find("p").get_text()
+        soup = BeautifulSoup(raw, 'html.parser')
+        answertxt = soup.find_all('div',class_="answer accepted-answer")
+        answer = ""
+        for paragraph in answertxt:
+            answer += str(paragraph.p)
+
         return answer
 
 
@@ -52,6 +54,7 @@ class Server(Resource):
         #Get first ten results from Google
         results = search("stackoverflow "+error, tld='com', lang='en', num=3, start=0, stop=None, pause=2.0)
         for result in results:
+            print(result)
             print(self.parser.parse_result(result))
             return {error:self.parser.parse_result(result)}
 
