@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "avocat.hpp"
 
@@ -38,7 +39,7 @@ int main(int argc, char** argv) {
 
     local_addr.sin_family = AF_INET;
     local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    local_addr.sin_port = htons(INADDR_ANY);
+    local_addr.sin_port = htons(PORT);
 
     if (bind(server_fd, (struct sockaddr*) &local_addr, sizeof(local_addr))) {
         fprintf(stderr, "Failed to bind port %d: ", (int) local_addr.sin_port);
@@ -55,6 +56,7 @@ int main(int argc, char** argv) {
 
     printf("Predaemon running on port number %d\n", port);
 
+#ifdef DYNAMIC_PORT
     /* Create description file for daemon */
     FILE* daemon_desc = nullptr;
     std::string config_loc = std::string(getenv("HOME")) + "/" + CONFIG_LOC;
@@ -67,13 +69,30 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+
+#endif
+
+#ifdef DAEMON_MODE
+    if (1 || daemon(0, 0) != 0) {
+        perror("Failed to spawn daemon");
+    }
+#endif
+
+    while (fcntl(server_fd, F_GETFL) != -1 || errno != EBADF) {
+        int r;
+        if (r = listen(server_fd, 1)) {
+            perror("listen error");
+        }
+        if (1/*r = accept(socket_fd, local_addr)*/) {
+
+        }
+    }
+
+
     /* Closing time */
     if (close(server_fd)) {
         perror("Error closing socket");
     }
 
-    if (1 || daemon(0, 0) != 0) {
-        perror("Failed to spawn daemon");
-    }
     return 0;
 }

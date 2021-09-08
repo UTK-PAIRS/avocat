@@ -1,7 +1,7 @@
 BIN_DIR := bin
 CONFIG_DIR := ~/.avocat
 
-PRJ := avocat avocat-local avocat-db
+PRJ := avocat avocat-local avocat-db catprog
 BIN := $(addprefix $(BIN_DIR)/,$(PRJ))
 
 all: $(BIN) $(PRJ)

@@ -10,13 +10,18 @@
 
 #include "avocat.hpp"
 
-#define DEBUG if (1)
+#define DEBUG if (0)
 
 namespace avocat {
+    // This is a local instance of avocat
     void Messenger::redirect_fd(int from, int to, std::string& history) {
         char buff[BUFF_SIZE];
         int len;
         while ((len = read(from, buff, BUFF_SIZE - 1)) && buff[0] != '\0') {
+            if (len < 0) {
+                fprintf(stderr, "failed to write from fd %d!\n", from);
+                perror("");
+            }
             if (write(to, buff, len) != len) {
                 fprintf(stderr, "failed to write to fd %d!\n", to);
                 perror("");
@@ -124,18 +129,24 @@ namespace avocat {
             redir_out.join();
             redir_err.join();
 
-            return status;
+            return WEXITSTATUS(status);
         } else {
             // child
+            int status = 0;
+
             out.set_mode(Messenger::mode_f::mode_write);
             err.set_mode(Messenger::mode_f::mode_write);
 
             out.replace_fd(STDOUT_FILENO);
             err.replace_fd(STDERR_FILENO);
 
-            execvpe(argv[1], argv + 1, envp);
+            if (execvpe(argv[1], argv + 1, envp)) {
+                while (wait(&status) > 0);
+                fprintf(stderr, "STAT: %d\n", status);
+                return WEXITSTATUS(status);
+            }
 
-            return -1;
+            return 69;
         }
     }
 }

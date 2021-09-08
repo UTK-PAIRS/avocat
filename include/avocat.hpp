@@ -16,13 +16,10 @@
 
 #define BUFF_SIZE 512
 #define CONFIG_LOC ".avocat/config"
-namespace avocat {
-    enum msg{
-        program_start,
-        program_end,
-        end_msg,
-    };
 
+#define PORT 8123
+
+namespace avocat {
     class Messenger {
         private:
             int in;
@@ -48,4 +45,12 @@ namespace avocat {
     };
 
     int execute_command(int argc, char *const argv[], char *const envp[], std::string history[2]);
+
+    struct ErrorDesc {
+        std::vector<std::string> argv;
+        std::string out;
+        std::string err;
+
+        int ret;
+    };
 }
