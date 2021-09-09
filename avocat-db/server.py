@@ -11,7 +11,7 @@ app = Flask(__name__)
 api = Api(app)
 
 # First, we must define a parser to understand url options
-# Format: url/req?argv=argv[0],argv[1],...;stdout="output"
+# Format: url/req?argv=argv[0],argv[1],...;stdout="output";stderr="errput";ret=num
 descparse = reqparse.RequestParser()
 descparse.add_argument('argv', type=list)
 
