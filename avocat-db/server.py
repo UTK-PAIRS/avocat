@@ -1,14 +1,22 @@
 '''
+Maintainer: Timothy Player
 
+Ddescription: This file holds information (for now) about database, 
+              requests and posts. Eventually there will be RL or idk NLP stuff.
 
 '''
 from flask import Flask, request
 from flask_restful import Resource, Api
+import json
+from requests import put, get
 from googlesearch import search
+import requests
 from bs4 import BeautifulSoup
+import re
 
 app = Flask(__name__)
 api = Api(app)
+
 
 class Solution:
     def __init__(self):
@@ -16,7 +24,7 @@ class Solution:
         self.graph = {}
 
 class Parser(Resource):
-    def parse_result(self, link):
+    def parse_result(self,link):
         #For now remove all user information and all information not directly relevant to the error
         answertxt = ""
         codetxt = ""
@@ -75,7 +83,7 @@ class Server(Resource):
         return {error:solutions[error]}
         
 
-api.add_resource(Server, '/req?<string:error>;<string:error>;<string:error>')
+api.add_resource(Server, '/<string:error>')
 
 if __name__ == '__main__':
     app.run(debug=True)
