@@ -112,7 +112,12 @@ namespace avocat {
         /* 
          * Function: avocat::execute_command
          * =================================
-         * Runs a command
+         * Runs a command under supervision from avocat. stdout and stderr are intercepted and saved into history and then redirected
+         * to the user. return value is the same as the return value of the command.
+         * 
+         * Example usage:
+         * 
+         * execute_command(3, ["echo", "hello", "world"], envp, history)
          */
         Messenger out;
         Messenger err;
