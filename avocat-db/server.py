@@ -2,18 +2,18 @@
 
 
 '''
-from flask import Flask, request
-from flask_restful import Resource, Api
+from flask import Flask, json, request, jsonify
+from flask_restful import Resource, Api, reqparse
 from googlesearch import search
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 api = Api(app)
 
-class Solution:
-    def __init__(self):
-        #The solution graph 
-        self.graph = {}
+# First, we must define a parser to understand url options
+# Format: url/req?argv=argv[0],argv[1],...;stdout="output"
+descparse = reqparse.RequestParser()
+descparse.add_argument('argv', type=list)
 
 class Parser(Resource):
     def parse_result(self, link):
@@ -50,13 +50,15 @@ class Server(Resource):
         #This lets us know what Daemon we're talking to and how to get her info aswell as what the final solution cmd is.
         return "Cant put stuff on the db yet."
 
-    def get(self, error):
+    def get(self, *arg):
         #This is what the API tells the daemon when she asks politely
         #if "npm install error" in error:
         #    return {error:"apt-get install npm"}
         
         #Get first ten results from Google
-        results = search(error, tld='com', lang='en', num=10, start=0, stop=None, pause=2.0)
+        return jsonify(arg)
+
+"""        results = search(error, tld='com', lang='en', num=10, start=0, stop=None, pause=2.0)
         for result in results:
             print(result)
             if "stackoverflow.com" in result:
@@ -72,10 +74,19 @@ class Server(Resource):
         for result in results:
             solutions[error].append(result)
             #Need to return dictionary for json conversion
-        return {error:solutions[error]}
+        return {error:solutions[error]}"""
+
+class Listen(Resource):
+    def get(self):
+        """
+        
+        """
+        args = descparse.parse_args()
+
+        return jsonify(args)
         
 
-api.add_resource(Server, '/req?<string:error>;<string:error>;<string:error>')
+api.add_resource(Listen, '/req')
 
 if __name__ == '__main__':
     app.run(debug=True)
