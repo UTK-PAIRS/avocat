@@ -23,7 +23,7 @@ int main(int argc, char *const argv[], char *const envp[])
     string history[2] = {"", ""};
     int ret;
 
-    if ((ret = avocat::execute_command(argc, argv, envp, history)) != 0) {
+    if ((ret = avocat::execute_command(argc - 1, argv + 1, envp, history)) != 0) {
         printf("\n=== AVOCAT ===\n");
         // return value was nonzero!
         printf("%.20s finished with error code %d!\n", argv[1], ret);

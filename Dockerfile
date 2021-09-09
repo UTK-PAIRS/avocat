@@ -2,7 +2,7 @@
 FROM ubuntu:latest
 
 # Update apps on the base image
-RUN apt-get -y clean && apt-get -y update && apt-get install -y
+RUN apt-get -y update && apt-get install -y
 
 # Install required programs / libs
 RUN apt-get -y install g++ make
