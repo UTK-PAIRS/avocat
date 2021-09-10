@@ -10,6 +10,7 @@ from subprocess import Popen, PIPE
 from io import BytesIO
 import urllib.parse
 import requests
+import re
 
 # https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 class bcolors:
@@ -22,6 +23,27 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+# https://stackoverflow.com/a/58780542
+def print_msg_box(msg, indent=1, width=None, title=None):
+    """Print message-box with optional title."""
+    lines = msg.split('\n')
+    space = " " * indent
+    if not width:
+        width = max(map(len, lines))
+    box = f'╔{"═" * (width + indent * 2)}╗\n'  # upper_border
+    if title:
+        box += f'║{space}{title:<{width}}{space}║\n'  # title
+        box += f'║{space}{"-" * len(title):<{width}}{space}║\n'  # underscore
+    box += ''.join([f'║{space}{line:<{width}}{space}║\n' for line in lines])
+    box += f'╚{"═" * (width + indent * 2)}╝'  # lower_border
+    print(box)
+
+# https://stackoverflow.com/questions/9662346/python-code-to-remove-html-tags-from-a-string
+def cleanhtml(raw_html):
+    cleanr = re.compile('<.*?>')
+    cleantext = re.sub(cleanr, '', raw_html)
+    return cleantext
 
 """ 
     open subprocess with pipes
@@ -76,7 +98,6 @@ if ret:
 
     # generate and send request
     req = f'http://localhost:5000/req?argv={",".join(map(enc, sys.argv[1:]))}&stdout={enc(sout)}&stderr={enc(serr)}&r={ret}'
-    print(req)
 
     r = None
     try:
@@ -85,11 +106,15 @@ if ret:
         print(bcolors.FAIL + "Unable to complete request with server -- all hope is lost." + bcolors.ENDC)
     
     if r:
-        print(r.text)
+        d = r.json()
+        if "questions" in d:
+            normalize = lambda body, w: cleanhtml('\n'.join(["\n".join([line[start:start + w] for start in range(0, len(line), w)]) for line in body.split('\n')]))
+            print_msg_box(normalize(d["questions"][0]["body"], 80))
+            print_msg_box(normalize(d["questions"][0]["answers"][0], 80))
+        else:
+            print(bcolors.FAIL + "Unable to diagnose -- got no matching posts" + bcolors.ENDC)
     else:
         print("Got nothing back from the server... Darn you, cats!")
-
-    
 
 stdoutb.close()
 stderrb.close()

@@ -17,6 +17,8 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+METHOD = "STACK"
+
 def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, apikey=None) -> dict:
     """
         Queries StackOverflow to resolve an issue with cli execution
@@ -50,31 +52,37 @@ def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, api
     query = ""
     if len(argv): query += argv[0]
     if stderr not in {"", "stderr"}: query += " " + stderr
-    elif stdout not in {"", "stdout"}: query += " " + stdout
+    #elif stdout not in {"", "stdout"}: query += " " + stdout
     if r != 0: query += f" error code {r}"
     query = urllib.parse.quote_plus(query)
 
-    # make request
-    req = f"https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=votes&q={query}{'&tagged=' + argv[0] if len(argv) else ''}&site=stackoverflow&answers={n}&filter=withbody{'&key=' + apikey if apikey else ''}"
+    if METHOD == "STACK":
+        # make request
+        req = f"https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=votes&q={query}{'&tagged=' + argv[0] if argv else ''}&site=stackoverflow&answers={n}&filter=withbody{'&key=' + apikey if apikey else ''}"
+        print(req)
 
-    r = None
-    try:
-        r = requests.get(req)
-    except:
-        print(bcolors.FAIL + "Unable to complete request with server -- all hope is lost." + bcolors.ENDC)
-        return {"Unable to communicate with stackexchange!"}
+        r = None
+        try:
+            r = requests.get(req)
+        except:
+            print(bcolors.FAIL + "Unable to complete request with server -- all hope is lost." + bcolors.ENDC)
+            return {"Unable to communicate with stackexchange!"}
 
-    q_resp = dict(r.json())
-    remaining = q_resp["quota_remaining"]
-    if not len(q_resp['items']): return {"error": "Got no results from query...", "remaining": remaining}
-    question_id = q_resp['items'][0]['question_id']
-    question = q_resp['items'][0]['body']
+        q_resp = dict(r.json())
+        remaining = q_resp["quota_remaining"]
+        if not len(q_resp['items']): return {"error": "Got no results from query...", "remaining": remaining}
+        question_id = q_resp['items'][0]['question_id']
+        question = q_resp['items'][0]['body']
+    elif METHOD == "GOOGLE":
+        print("NOT IMPLEMENTED")
 
     """
         Get answers request
     """
     # make request
     req = f"https://api.stackexchange.com/2.3/questions/{';'.join(map(str, [question_id]))}/answers?order=desc&sort=activity&site=stackoverflow&filter=withbody{'&key=' + apikey if apikey else ''}"
+    print(req)
+    
     r = None
     try:
         r = requests.get(req)
@@ -92,7 +100,7 @@ def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, api
         'questions':
             [
                 {
-                    'body': [question],
+                    'body': question,
                     'url': f'https://stackoverflow.com/questions/{question_id}/',
                     'answers': [answer]
                 },

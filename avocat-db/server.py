@@ -4,10 +4,6 @@
 
 from flask import Flask, json, request, jsonify
 from flask_restful import Resource, Api, reqparse
-from googlesearch import search
-import requests
-from bs4 import BeautifulSoup
-import re
 from os.path import exists
 from helpers import *
 
@@ -45,7 +41,7 @@ class Diagnose(Resource):
 
         r = querySO(**args, apikey=STACKOVERFLOW['key'] if STACKOVERFLOW else None)
 
-        print(f"{r['remaining']} calls remaining")
+        print(f"{r['remaining']} calls remaining\n\n")
 
         return r
 
