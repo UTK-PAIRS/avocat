@@ -9,8 +9,6 @@ This project is split into three portions:
 2. avocat-local: this optional local server acts as an intermediate between the avocat instance and an external database for improved caching and monitoring support
 3. avocat-db: this is the database which avocat can query in order to suggest resolution strategies
 
-If you have all of the dependencies installed, you can use the makefile in the root directory to compile all components.
-
 # avocat
 avocat is the program that is called anytime a user wishes for program execution to be monitored. It intercepts the outputs of the program saves a copy into history in system memory, also redirecting to the user. Upon unsuccessful execution, avocat queries either avocat-local or avocat-db for a resolution strategy which is then returned to the user.
 
@@ -24,16 +22,6 @@ sudo apt-get install libcurl4-openssl-dev
 cd avocat
 make
 ../bin/avocat
-```
-
-Usage:
-```
-./avocat programname arg1 arg2 ...
-```
-
-Example:
-```
-./avocat echo hi
 ```
 
 # avocat-local

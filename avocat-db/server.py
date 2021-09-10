@@ -1,11 +1,13 @@
 '''
 
-
 '''
+
 from flask import Flask, json, request, jsonify
 from flask_restful import Resource, Api, reqparse
 from googlesearch import search
+import requests
 from bs4 import BeautifulSoup
+import re
 
 app = Flask(__name__)
 api = Api(app)
@@ -16,7 +18,7 @@ descparse = reqparse.RequestParser()
 descparse.add_argument('argv', type=list)
 
 class Parser(Resource):
-    def parse_result(self, link):
+    def parse_result(self,link):
         #For now remove all user information and all information not directly relevant to the error
         answertxt = ""
         codetxt = ""
