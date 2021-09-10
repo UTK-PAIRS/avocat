@@ -36,7 +36,6 @@ stdoutb = BytesIO()
 stderrb = BytesIO()
 
 # https://stackoverflow.com/questions/31833897/python-read-from-subprocess-stdout-and-stderr-separately-while-preserving-order/32741930
-
 """
     use selector to listen simultaneously and add to buffer
 """
@@ -76,7 +75,7 @@ if ret:
     serr = ' '.join(stderrb.getvalue().decode().split())
 
     # generate and send request
-    req = f'http://localhost:5000/req?{",".join(map(enc, sys.argv[1:]))};stdout={enc(sout)};stderr={enc(serr)};r={ret}'
+    req = f'http://localhost:5000/req?argv={",".join(map(enc, sys.argv[1:]))}&stdout={enc(sout)}&stderr={enc(serr)}&r={ret}'
     print(req)
 
     r = None
@@ -84,6 +83,13 @@ if ret:
         r = requests.get(req)
     except:
         print(bcolors.FAIL + "Unable to complete request with server -- all hope is lost." + bcolors.ENDC)
+    
+    if r:
+        print(r.text)
+    else:
+        print("Got nothing back from the server... Darn you, cats!")
+
+    
 
 stdoutb.close()
 stderrb.close()
