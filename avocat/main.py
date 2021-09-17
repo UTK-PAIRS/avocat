@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 main.py
 
@@ -45,76 +47,90 @@ def cleanhtml(raw_html):
     cleantext = re.sub(cleanr, '', raw_html)
     return cleantext
 
-""" 
-    open subprocess with pipes
-"""
+def menu() -> "sel":
+    print("s: view url source; c: view code snippets; q: change query; e: execute command")
+    return 
 
-p = Popen(sys.argv[1:], stdout=PIPE, stderr=PIPE)
+def main():
+    """ 
+        open subprocess with pipes
+    """
 
-"""
-    create buffers
-"""
-stdoutb = BytesIO()
-stderrb = BytesIO()
+    p = Popen(sys.argv[1:], stdout=PIPE, stderr=PIPE)
 
-# https://stackoverflow.com/questions/31833897/python-read-from-subprocess-stdout-and-stderr-separately-while-preserving-order/32741930
-"""
-    use selector to listen simultaneously and add to buffer
-"""
-sel = selectors.DefaultSelector()
-sel.register(p.stdout, selectors.EVENT_READ)
-sel.register(p.stderr, selectors.EVENT_READ)
+    """
+        create buffers
+    """
+    stdoutb = BytesIO()
+    stderrb = BytesIO()
 
-while p.poll() is None:
-    for key, _ in sel.select():
-        data = key.fileobj.read1()
-        if data:
-            if key.fileobj is p.stdout:
-                stdoutb.write(data)
-                print(data.decode(), end='')
+    # https://stackoverflow.com/questions/31833897/python-read-from-subprocess-stdout-and-stderr-separately-while-preserving-order/32741930
+    """
+        use selector to listen simultaneously and add to buffer
+    """
+    sel = selectors.DefaultSelector()
+    sel.register(p.stdout, selectors.EVENT_READ)
+    sel.register(p.stderr, selectors.EVENT_READ)
+
+    while p.poll() is None:
+        for key, _ in sel.select():
+            data = key.fileobj.read1()
+            if data:
+                if key.fileobj is p.stdout:
+                    stdoutb.write(data)
+                    print(data.decode(), end='')
+                else:
+                    stderrb.write(data)
+                    print(bcolors.FAIL + data.decode() + bcolors.ENDC, file=sys.stderr, end='')
+
+    """
+        At this point, the process has finished running. Now, we can figure out if we need to diagnose it.
+    """
+
+    ret = p.poll()
+    
+    """
+        upon nonzero return value, diagnose with server
+    """
+    if ret:
+        print("\n=== AVOCAT ===")
+        print(f"'{' '.join(sys.argv[1:])}' ended with error code {ret}!")
+        print("Diagnosing...")
+        
+        enc = urllib.parse.quote_plus
+
+        # process bytestreams
+        sout = ' '.join(stdoutb.getvalue().decode().split())
+        serr = ' '.join(stderrb.getvalue().decode().split())
+
+        # generate and send request
+        #req = f'http://localhost:5000/req?argv={",".join(map(enc, sys.argv[1:]))}&stdout={enc(sout)}&stderr={enc(serr)}&r={ret}'
+        req = 'http://localhost:5000/req?argv=dummy'
+
+        r = None
+        try:
+            r = requests.get(req)
+        except:
+            print(bcolors.FAIL + "Unable to complete request with server -- all hope is lost." + bcolors.ENDC)
+        
+        # we got a response from the server! triage
+        if r:
+            d = r.json()
+
+            # check for code
+            if "code" in d:
+                print(f"Try code snippet `{c[-1]}`.")
+            if "questions" in d:
+                normalize = lambda body, w: cleanhtml('\n'.join(["\n".join([line[start:start + w] for start in range(0, len(line), w)]) for line in body.split('\n')]))
+                print_msg_box(normalize(d["questions"][0]["body"], 80))
+                print_msg_box(normalize(d["questions"][0]["answers"][0], 80))
             else:
-                stderrb.write(data)
-                print(bcolors.FAIL + data.decode() + bcolors.ENDC, file=sys.stderr, end='')
-
-"""
-    At this point, the process has finished running. Now, we can figure out if we need to diagnose it.
-"""
-
-ret = p.poll()
-
-"""
-    upon nonzero return value, diagnose with server
-"""
-if ret:
-    print("\n=== AVOCAT ===")
-    print(f"'{' '.join(sys.argv[1:])}' ended with error code {ret}!")
-    print("Diagnosing...")
-    
-    enc = urllib.parse.quote_plus
-
-    # process bytestreams
-    sout = ' '.join(stdoutb.getvalue().decode().split())
-    serr = ' '.join(stderrb.getvalue().decode().split())
-
-    # generate and send request
-    req = f'http://localhost:5000/req?argv={",".join(map(enc, sys.argv[1:]))}&stdout={enc(sout)}&stderr={enc(serr)}&r={ret}'
-
-    r = None
-    try:
-        r = requests.get(req)
-    except:
-        print(bcolors.FAIL + "Unable to complete request with server -- all hope is lost." + bcolors.ENDC)
-    
-    if r:
-        d = r.json()
-        if "questions" in d:
-            normalize = lambda body, w: cleanhtml('\n'.join(["\n".join([line[start:start + w] for start in range(0, len(line), w)]) for line in body.split('\n')]))
-            print_msg_box(normalize(d["questions"][0]["body"], 80))
-            print_msg_box(normalize(d["questions"][0]["answers"][0], 80))
+                print(bcolors.FAIL + "Unable to diagnose -- got no matching posts" + bcolors.ENDC)
         else:
-            print(bcolors.FAIL + "Unable to diagnose -- got no matching posts" + bcolors.ENDC)
-    else:
-        print("Got nothing back from the server... Darn you, cats!")
+            print("Got nothing back from the server... Darn you, cats!")
+    
+    stdoutb.close()
+    stderrb.close()
 
-stdoutb.close()
-stderrb.close()
+if __name__ == "__main__":
+    main()
