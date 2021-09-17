@@ -106,20 +106,21 @@ def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, api
         'remaining': remaining
     }
 
-    def dummyError():
-        return {
-            'questions': [
-                {
-                    'body': 'Dummy question',
-                    'url': 'https://en.wikipedia.org/wiki/Newtons_(cookie)',
-                    'answers': ['Dummy answer']
-                }
-            ],
-            'code': [
-                'echo meow'
-            ],
-            'remaining': inf
-        }
+def dummyError():
+    print("DUMMY")
+    return {
+        'questions': [
+            {
+                'body': 'Dummy question',
+                'url': 'https://en.wikipedia.org/wiki/Newtons_(cookie)',
+                'answers': ['Dummy answer']
+            }
+        ],
+        'code': [
+            'echo meow'
+        ],
+        'remaining': float('inf')
+    }
 
-    def query(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, apikey=None) -> dict:
-        return dummyError() if argv == 'dummy' else querySO(argv, stdout, stderr, r, n, apikey)
+def query(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, apikey=None) -> dict:
+    return dummyError() if argv == 'dummy' else querySO(argv, stdout, stderr, r, n, apikey)

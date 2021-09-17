@@ -41,7 +41,7 @@ class Diagnose(Resource):
         args = descparse.parse_args()
         args['argv'] = ''.join(args['argv']).split(',')
 
-        r = querySO(**args, apikey=STACKOVERFLOW['key'] if STACKOVERFLOW else None)
+        r = query(**args, apikey=STACKOVERFLOW['key'] if STACKOVERFLOW else None)
 
         print(f"{r['remaining']} calls remaining\n\n")
 

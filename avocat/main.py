@@ -49,7 +49,7 @@ def cleanhtml(raw_html):
 
 def menu() -> "sel":
     print("s: view url source; c: view code snippets; q: change query; e: execute command")
-    return 
+    return input()
 
 def main():
     """ 
@@ -104,8 +104,8 @@ def main():
         serr = ' '.join(stderrb.getvalue().decode().split())
 
         # generate and send request
-        #req = f'http://localhost:5000/req?argv={",".join(map(enc, sys.argv[1:]))}&stdout={enc(sout)}&stderr={enc(serr)}&r={ret}'
-        req = 'http://localhost:5000/req?argv=dummy'
+        req = f'http://localhost:5000/req?argv={",".join(map(enc, sys.argv[1:]))}&stdout={enc(sout)}&stderr={enc(serr)}&r={ret}'
+        #req = 'http://localhost:5000/req?argv=dummy'
 
         r = None
         try:
@@ -119,13 +119,14 @@ def main():
 
             # check for code
             if "code" in d:
-                print(f"Try code snippet `{c[-1]}`.")
-            if "questions" in d:
+                print(f"Try code snippet `{d['code'][-1]}`.")
+            elif "questions" in d:
                 normalize = lambda body, w: cleanhtml('\n'.join(["\n".join([line[start:start + w] for start in range(0, len(line), w)]) for line in body.split('\n')]))
                 print_msg_box(normalize(d["questions"][0]["body"], 80))
                 print_msg_box(normalize(d["questions"][0]["answers"][0], 80))
             else:
                 print(bcolors.FAIL + "Unable to diagnose -- got no matching posts" + bcolors.ENDC)
+            menu()
         else:
             print("Got nothing back from the server... Darn you, cats!")
     
