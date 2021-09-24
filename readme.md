@@ -33,3 +33,9 @@ to run, make sure you are in this repo, then run:
 $ python3 -mavocat
 ```
 
+```shell
+$ python3 -mavocat --shell
+```
+
+
+

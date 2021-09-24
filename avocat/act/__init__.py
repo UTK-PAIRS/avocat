@@ -4,13 +4,29 @@ basically, this module is the meat of the solver/helper functionality
 
 
 
-SEE: https://stackoverflow.com/questions/45022566/create-python-cli-with-select-interface
+SEE:
+  * https://stackoverflow.com/questions/45022566/create-python-cli-with-select-interface
+  * https://stackoverflow.com/questions/31642940/finding-if-two-strings-are-almost-similar
+
 
 @author: Cade Brown <cade@cade.utk>
 """
 
+import os
+
 # for choices in the terminal
 import inquirer
+
+# for loose string matching
+from fuzzywuzzy import fuzz
+
+
+
+
+# check whether 'A' and 'B' are close, return 0.0 to 1.0
+def text_close(actor, A, B):
+    # ratio of closeness [0.0,1.0]
+    return fuzz.partial_ratio(A, B) / 100.0
 
 """ avocat.act.Actor - represents a virtual user (i.e. personifying the avocat process itself), with permissions, and
                        help messages, and allows users to control what is executed automatically
@@ -18,16 +34,17 @@ import inquirer
 """
 class Actor:
 
-    def __init__(self):
-        pass
-        
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"
         
     def __str__(self) -> str:
         return repr(self)
 
-
+    def get(self, key, defa=None):
+        return self.kwargs.get(key, defa)
 
     # run a decision tree
     def run(self, tree):
@@ -37,9 +54,92 @@ class Actor:
         else:
             raise Exception(f"unexpected type for action tree (got object of type {type(tree)})")
 
+    # find a file, return a path to it
+    def find(self, name, req=False, paths=[]):
+        # add paths
+        paths = self.kwargs.get('paths', ['.']) + paths
+
+        # search through
+        rpath = None
+        for path in paths:
+            for root, dirs, files in os.walk(path):
+                for filename in files:
+                    for fullname in map(lambda x: os.path.join(root, x), files):
+                        if fullname.endswith(name):
+                            rpath = fullname
+
+        # not found, but required
+        if req and rpath is None: raise Exception(f'failed to find file {repr(name)} (looked: {paths})')
+
+        return rpath
+        
+
+    # find a file (using fuzzy logic)
+    # NOTE: if give 'closefn', accept (actor, A, B) and return whether 'A' and 'B' are close (0.0 to 1.0 scale)
+    def find_close(self, name, req=False, paths=[], closefn=text_close):
+        # add paths
+        paths = self.kwargs.get('paths', ['.']) + paths
+
+        # search through
+        rpath = None
+        rclose = None
+        for path in paths:
+            for root, dirs, files in os.walk(path):
+                for fullname in map(lambda x: os.path.join(root, x), files):
+                    close = closefn(self, name, fullname)
+                    if close > 0.5:
+                        # (' ', fullname, close)
+                        # possible result
+                        if rpath is None or close > rclose:
+                            rpath = fullname
+                            rclose = close
+
+        # not found, but required
+        if req and rpath is None: raise Exception(f'failed to find file {repr(name)} (looked: {paths})')
+
+        return rpath
+
+    # perform a single choice
+    def choice(self, Q, mapping, force=False):
+        res = None
+        # make dict
+        if isinstance(mapping, list):
+            mapping = { v: v for v in mapping }
+
+        # now, seeif it should be interactive
+        if not force and self.kwargs.get('auto', False):
+            # run automatically
+            res = next(iter(mapping.values()))
+            print('(auto) ', Q, ' -> ', res, ' (from: ', list(mapping.keys()), ')', sep='')
+        else:
+            # run manually
+            Qs = [
+                inquirer.List(
+                    "res",
+                    message=Q,
+                    choices=mapping,
+                ),
+            ]
+
+            # get answer
+            As = inquirer.prompt(Qs)
+            res = As["res"]
+
+        # now, check if it needs to be evaluated
+        if isinstance(res, Tree):
+            res = self.run(res)
+
+        return res
+
 
 """ avocat.act.Tree - represents an action tree, which is an abstract action that can be evaluated by an 'Actor'
 
+
+{
+    "type": "Choice",
+    "Q": "what do you enter",
+    "choices": ["abc", "xyz"],
+}
 
 """
 class Tree:
@@ -83,6 +183,10 @@ class Tree:
             # set attr
             self.kwargs[key] = val
 
+    def get(self, key, defa=None):
+        return self.kwargs.get(key, defa)
+
+
     # run the tree (i.e. actually do the action) on a given actor
     # NOTE: override this!
     def run(self, actor):
@@ -105,7 +209,7 @@ class Print(Tree):
 
     def run(self, actor):
         # run all sub arguments and print them out
-        print(*[actor.run(arg) for arg in self.args], sep='')
+        print(*[actor.run(arg) for arg in self.args], sep=self.get("sep", ''))
 
 """ avocat.act.Choice - action tree that prompts the user for a choice, and yields it
 
@@ -114,17 +218,25 @@ class Print(Tree):
 class Choice(Tree):
 
     def run(self, actor):
-        # produce questions
-        Qs = [
-            inquirer.List(
-                "res",
-                message=self["Q"],
-                choices=self["choices"],
-            ),
-        ]
+        return actor.choice(self["Q"], self["data"])
 
-        # get answers
-        As = inquirer.prompt(Qs)
 
-        # return result
-        return As["res"]
+""" avocat.act.Find - action tree that finds a file/directory
+
+
+"""
+class Find(Tree):
+
+    def run(self, actor):
+        return actor.find(self["name"], self.get("req", False))
+
+""" avocat.act.FindClose - action tree that finds a file/directory, using fuzzy logic
+
+
+"""
+class FindClose(Tree):
+
+    def run(self, actor):
+        return actor.find_close(self["name"], self.get("req", False))
+
+
