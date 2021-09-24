@@ -13,6 +13,7 @@ from io import BytesIO
 import urllib.parse
 import requests
 import re
+import time
 
 # https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 class bcolors:
@@ -126,7 +127,20 @@ def main():
                 print_msg_box(normalize(d["questions"][0]["answers"][0], 80))
             else:
                 print(bcolors.FAIL + "Unable to diagnose -- got no matching posts" + bcolors.ENDC)
-            menu()
+            while (True):
+                sel = menu()
+                if sel == 's':
+                    print(d["questions"][0]["url"])
+                elif sel == 'c':
+                    print(d['code'])
+                elif sel == 'q':
+                    print("nah")
+                elif sel == 'e':
+                    print("running commnd...")
+                    time.sleep(5)
+                    print('jk')
+                elif sel == 'quit':
+                    break
         else:
             print("Got nothing back from the server... Darn you, cats!")
     

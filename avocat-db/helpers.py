@@ -92,7 +92,7 @@ def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, api
     answer_id = a_resp['items'][0]['question_id']
     answer = a_resp['items'][0]['body']
 
-    code = [code[s:e] for s, e in zip([m.start() for m in re.finditer('<code>', answer)], [m.start() for m in re.finditer('</code>', answer)])]
+    code = [answer[s+len('<code>'):e] for s, e in zip([m.start() for m in re.finditer('<code>', answer)], [m.start() for m in re.finditer('</code>', answer)])]
 
     return {
         'questions': [
@@ -122,5 +122,10 @@ def dummyError():
         'remaining': float('inf')
     }
 
+def gitError(): pass
+
 def query(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, apikey=None) -> dict:
-    return dummyError() if argv == 'dummy' else querySO(argv, stdout, stderr, r, n, apikey)
+    if argv == 'dummy':
+        return dummyError()
+    else:
+        return dummyError() if argv == 'dummy' else querySO(argv, stdout, stderr, r, n, apikey)
