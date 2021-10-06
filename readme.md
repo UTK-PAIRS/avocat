@@ -1,41 +1,38 @@
-# avocat (prototype2)
+# avocat
 
-this is prototype2 of avocat, an automated problem solver for your terminal!
+this is of avocat, an automated problem solver for your terminal!
 
+authors:
+
+  * Cade Brown <me@cade.site>
+  * Gregory Croisdale
+  * (add yourself to this if you're commiting code and haven't already been added!)
 
 ## install
 
-TODO: make installable via pypi (or git)
+TODO: make available on pypi
 
-## build
+## run
 
-### setup
+TODO: we need an example use case
 
-make sure you have `python3` and `pip3` installed on your machine. 
+## setup
 
-for example, on Debian-based Linux distributions, run:
+for developers, or people using from source, you'll need to install `python3` and `pip3`
 
 ```shell
-$ sudo apt install python3 python3-pip
+# for Debian/Ubuntu/apt-based
+$ sudo apt install python3 pip3
 ```
 
-now, install the dependencies for this project, run:
+then, you'll need to install the requirements:
 
 ```shell
 $ pip3 install -r requirements.txt
 ```
 
-## running
-
-to run, make sure you are in this repo, then run:
+now, you can run locally with:
 
 ```shell
 $ python3 -mavocat
 ```
-
-```shell
-$ python3 -mavocat --shell
-```
-
-
-
