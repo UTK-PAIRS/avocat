@@ -1,5 +1,5 @@
 bin
 *.o
 .vscode
-API_KEYS
+*apikey.py
 *__pycache__
