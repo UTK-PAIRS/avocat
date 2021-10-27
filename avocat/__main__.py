@@ -18,16 +18,24 @@ parser.add_argument('-o','--stdout', help='path to the stdout file')
 
 parser.add_argument('-f','--file', help='path to the command file to run')
 
+parser.add_argument('command', nargs='*', help='command arguments')
+# 
 
 args = parser.parse_args()
 
-if args.file:
+if args.command:
+    avocat.msg("running command", args.command)
+    proc = subprocess.run(args.command, capture_output=True, text=True)
+    out, err = proc.stdout, proc.stderr
+elif args.file:
+    avocat.msg("running file", args.file)
     proc = subprocess.run(["sh", args.file], capture_output=True, text=True)
     out, err = proc.stdout, proc.stderr
 else:
     if not args.stdout or not args.stderr:
         raise Exception("'-e' and '-o' are required! (or, use '-f'). run with '--help' to see all options")
     # read contents of stdout and stderr
+    avocat.msg("trying to solve error from stdout:", args.stdout, "stderr:", args.stderr)
     out, err = open(args.stdout, 'r').read(), open(args.stderr, 'r').read()
 
 

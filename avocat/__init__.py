@@ -25,6 +25,10 @@ def text_close(actor, A, B):
     # ratio of closeness [0.0,1.0]
     return fuzz.partial_ratio(A, B) / 100.0
 
+def msg(*args):
+    print('avocat>', *args)
+
+
 
 """ avocat.act.Actor - represents a virtual user (i.e. personifying the avocat process itself), with permissions, and
                        help messages, and allows users to control what is executed automatically
