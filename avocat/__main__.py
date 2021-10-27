@@ -1,4 +1,4 @@
-""" avocat/__main__.py - commandline interface to avocat
+""" avocat/__main__.py - avocat CLI implementation
 
 
 @author: Cade Brown <cade@cade.utk>
@@ -6,10 +6,45 @@
 """
 
 import avocat
-from avocat import act
 
-# create actor to execute actions through
-actor = act.Actor(auto=True)
+import subprocess
+
+import argparse
+
+parser = argparse.ArgumentParser(description='avocat: your terminal advocate')
+
+parser.add_argument('-e','--stderr', help='path to the stderr file')
+parser.add_argument('-o','--stdout', help='path to the stdout file')
+
+parser.add_argument('-f','--file', help='path to the command file to run')
+
+
+args = parser.parse_args()
+
+if args.file:
+    proc = subprocess.run(["sh", args.file], capture_output=True, text=True)
+    out, err = proc.stdout, proc.stderr
+else:
+    if not args.stdout or not args.stderr:
+        raise Exception("'-e' and '-o' are required! (or, use '-f'). run with '--help' to see all options")
+    # read contents of stdout and stderr
+    out, err = open(args.stdout, 'r').read(), open(args.stderr, 'r').read()
+
+
+# find solution tree
+sol = avocat.find_sol(out, err)
+
+print (sol)
+
+# create actor
+act = avocat.Actor()
+
+
+print (act)
+
+print(act.run(sol))
+
+
 
 # create action item
 #tree = act.Print(
@@ -31,6 +66,8 @@ tree = act.PackageInstall(
 )
 """
 
+"""
+
 tree = act.Print(
     act.Const(data="hey, you said: "),
     act.Choice(Q="what do you want to enter?", data={ 'abc': 'abc', 'foo': 'foo', 'v123': '1.2.3', 'v456': '4.5.6' }),
@@ -42,14 +79,6 @@ print(tree)
 
 # now, run the action item
 res = actor.run(tree)
-
-
-
-
-####
-
-
-"""
 
 
 actor, proc_shell = avocat.shell(auto=True)

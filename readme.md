@@ -1,41 +1,37 @@
-# avocat (prototype2)
+# Avocat
 
-this is prototype2 of avocat, an automated problem solver for your terminal!
+Automatic Shell-Level Monitoring and Error Resolution
+University of Tennessee, Knoxville PAIRS Lab
 
+Avocat is a project which seeks to bring cutting-edge error resolution strategies directly into the terminal. Rather than users copying and pasting relevant information from their shell into a search engine, avocat automatically queries its database and Q&A services to suggest immediate resolution strategies.
 
-## install
-
-TODO: make installable via pypi (or git)
-
-## build
-
-### setup
-
-make sure you have `python3` and `pip3` installed on your machine. 
-
-for example, on Debian-based Linux distributions, run:
+## example
 
 ```shell
-$ sudo apt install python3 python3-pip
-```
-
-now, install the dependencies for this project, run:
-
-```shell
-$ pip3 install -r requirements.txt
-```
-
-## running
-
-to run, make sure you are in this repo, then run:
-
-```shell
-$ python3 -mavocat
-```
-
-```shell
-$ python3 -mavocat --shell
+shell> python3 -mavocat -- echo hi
+avocat> $ echo hi
+avocat> > hi
 ```
 
 
+# avocat
+
+avocat is the program that is called anytime a user wishes for program execution to be monitored. It intercepts the outputs of the program saves a copy into history in system memory, also redirecting to the user. Upon unsuccessful execution, avocat queries either avocat-local or avocat-db for a resolution strategy which is then returned to the user.
+
+This program relies on a few UNIX syscalls, so non-UNIX systems will likely encounter issues.
+
+Dependencies: `libcurl`
+
+Installation instructions:
+```
+sudo apt-get install libcurl4-openssl-dev
+cd avocat
+make
+../bin/avocat
+```
+
+# avocat-local
+avocat-local is a system-level server which seeks to mediate database-client interaction and allow for process monitoring (FUTURE FEATURE)
+
+SOON TO BE REWRITTEN IN PYTHON
 

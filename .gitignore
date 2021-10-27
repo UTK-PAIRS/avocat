@@ -5,3 +5,7 @@ __pycache__
 *.pyd
 *.pyc
 
+# test temp files
+*.stdout
+*.stderr
+
