@@ -2,7 +2,7 @@
 
 
 @author: Cade Brown <cade@cade.utk>
-@author: Gregory Croisdale <>
+@author: Gregory Croisdale <gcroisda@vols.utk.edu>
 """
 
 
@@ -13,29 +13,28 @@ import subprocess
 import inquirer
 
 # for loose string matching
-from fuzzywuzzy import fuzz
-
+# from fuzzywuzzy import fuzz
 
 from . import act
+from . import db
 
 ### UTILS ###
 
 # check whether 'A' and 'B' are close, return 0.0 to 1.0
 def text_close(actor, A, B):
+    return 1.0
     # ratio of closeness [0.0,1.0]
-    return fuzz.partial_ratio(A, B) / 100.0
+    # return fuzz.partial_ratio(A, B) / 100.0
 
 def msg(*args):
     print('avocat>', *args)
 
 
-
-""" avocat.act.Actor - represents a virtual user (i.e. personifying the avocat process itself), with permissions, and
+"""
+    avocat.act.Actor - represents a virtual user (i.e. personifying the avocat process itself), with permissions, and
                        help messages, and allows users to control what is executed automatically
-
 """
 class Actor:
-
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
@@ -140,15 +139,3 @@ class Actor:
         res = subprocess.run(args, check=True)
 
         return res
-
-
-def find_sol(err, out):
-    """ find a solution tree for the given stderr/stdout """
-    return act.Shell(
-        act.Const(data="apt"), 
-        act.Const(data="install"),
-        act.Const(data="some-package-name"),
-    )  
-    #act.Choice(Q="which looks right?", choices=["abc", "xyz"])
-    #return act.Tree()
-

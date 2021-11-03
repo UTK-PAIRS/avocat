@@ -2,27 +2,26 @@
 
 
 @author: Cade Brown <cade@cade.utk>
-@author: Gregory Croisdale <>
+@author: Gregory Croisdale <gcroisda@vols.utk.edu>
 """
 
 import avocat
-
 import subprocess
-
 import argparse
 
+
+# construct argument parser
 parser = argparse.ArgumentParser(description='avocat: your terminal advocate')
 
-parser.add_argument('-e','--stderr', help='path to the stderr file')
-parser.add_argument('-o','--stdout', help='path to the stdout file')
-
+parser.add_argument('-t','--test', help='test number')
+parser.add_argument('-e','--stderr', help='path to pregenerated stderr file')
+parser.add_argument('-o','--stdout', help='path to pregenerated stdout file')
 parser.add_argument('-f','--file', help='path to the command file to run')
-
 parser.add_argument('command', nargs='*', help='command arguments')
-# 
 
 args = parser.parse_args()
 
+# run file / command
 if args.command:
     avocat.msg("running command", args.command)
     proc = subprocess.run(args.command, capture_output=True, text=True)
@@ -38,21 +37,22 @@ else:
     avocat.msg("trying to solve error from stdout:", args.stdout, "stderr:", args.stderr)
     out, err = open(args.stdout, 'r').read(), open(args.stderr, 'r').read()
 
+print(out, end='')
+print(err, end='')
 
-# find solution tree
-sol = avocat.find_sol(out, err)
+if proc.returncode != 0:
+    print(f"Return code: {proc.returncode}\n")
 
-print (sol)
+    # find solution tree
+    sol = avocat.db.find_sol(out, err)
+    print(sol)
 
-# create actor
-act = avocat.Actor()
-
-
-print (act)
-
-print(act.run(sol))
-
-
+    # create actor and run sol tree
+    act = avocat.Actor()
+    print(act.run(sol))
+else:
+    # successfully ran
+    pass
 
 # create action item
 #tree = act.Print(
@@ -60,8 +60,6 @@ print(act.run(sol))
 #    act.FindClose(name='act/__initff__.py', req=True),
 #    sep='\n',
 #)
-
-
 
 """
 NPM: no such module react-native-elements

@@ -11,9 +11,6 @@ SEE:
 @author: Cade Brown <cade@cade.utk>
 """
 
-import os
-
-
 class Tree:
     """ action tree, which is an abstract action that can be evaluated by an 'Actor' """
 
@@ -77,11 +74,11 @@ class Tree:
     def get(self, key, defa=None):
         return self.kwargs.get(key, defa)
 
-
     # run the tree (i.e. actually do the action) on a given actor
     # NOTE: override this!
     def run(self, actor):
         raise NotImplementedError
+
 
 class Const(Tree):
     """ represents a constant value """
@@ -139,5 +136,3 @@ class InstallPackage(Tree):
         # dump arguments
         args = [actor.run(arg) for arg in self.args]
         return actor.shell(args)
-
-

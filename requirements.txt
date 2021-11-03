@@ -1,3 +1,2 @@
 python-inquirer
 fuzzywuzzy
-python-Levenshtein
