@@ -1,61 +1,68 @@
 import requests
 import urllib.parse
-import apikey
+import avocat.db.apikey as apikey
+
+QSITE = "askubuntu"
+
+def extract_code(body):
+    out = []
+    for c in body.split("<code>")[1:]:
+        out += [*[s.rstrip() for s in c.split("</code>")[0].split("\n") if s != '']]
+
+    return out
 
 class question:
-    def __init__(self, question, answers, id):
-        self.question = question
+    def __init__(self, body, answers, id):
+        self.body = body
         self.answers = answers
         self.id = id
+
+    def __str__(self):
+        return self.body
+
+    def __repr__(self):
+        answers = '\n'.join([repr(r) for r in self.answers])
+        return f"QID {self.id}:\n{self.body}\n\n{answers}"
 
 class answer:
     def __init__(self, body, id, score):
         self.body = body
         self.id = id
         self.score = score
+        self.code = extract_code(body)
 
-def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, apikey=apikey.so) -> dict:
+    def __str__(self):
+        return self.body
+
+    def __repr__(self):
+        return f"AID {self.id}:\n{self.body}"
+
+def querySO(query:str="", tags:list=[], n:int=1, apikey:str=apikey.so) -> dict:
     """
         Queries StackOverflow to resolve an issue with cli execution
         of a program according to the parameters.
 
-        argv -> List of program arguments. argv[0] should be the name
-        of the errored process.
+        query: str
+            The query to be resolved.
 
-        stdout -> String representing standard output stream
-        of the program after execution. Generally not necessary
-        for good results.
+        tags: list
+            The tags to be used to filter the results.
 
-        stderr -> String representing standard error stream of the
-        program after execution.
+        n: int
+            The number of results to be returned.
 
-        r -> integer indicating the return value of the errored program.
-
-        n -> integer indicating the maximum number of stack overflow
-        answers to return.
-    
-        ===========
-
-        returns a list of stack overflow answers in PUT THE FORMAT
-        HERE WHEN YOU FIGURE IT OUT
+        apikey: str
+            The StackOverflow API key.
     """
-    def query():
 
     """
-        Query request -- what questions will we target?
-    """
-    # construct query string based on provided params
-    query = argv[0]
-    """if len(argv): query += argv[0]
-    if stderr not in {"", "stderr", None}: query += " " + stderr
-    #elif stdout not in {"", "stdout"}: query += " " + stdout
-    if r != 0: query += f" error code {r}"
+    Query request -- what questions will we target?
     """
     # encode query string into url safe format
     query = urllib.parse.quote_plus(query)
 
     # make request
-    req = f"https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=votes&q={query}{'&tagged=' + argv[0] if argv else ''}&site=stackoverflow&answers={n}&filter=withbody{'&key=' + apikey if apikey else ''}"
+    req = f"https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=votes&q={query}{'&tagged=' + ';'.join(tags) if tags else ''}&site={QSITE}&answers={n}&filter=withbody{'&key=' + apikey if apikey else ''}"
     
     # DEBUG
     print(req)
@@ -66,16 +73,24 @@ def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, api
     # parse result
     q_resp = dict(r.json())
     remaining = q_resp["quota_remaining"]
-    if not len(q_resp['items']): return {"error": "Got no results from query...", "remaining": remaining}
+
+    if not len(q_resp['items']):
+        raise Exception("Got no results from query request")
 
     questions = {q['question_id']: question(q['body'], [], q['question_id']) for q in q_resp['items']}
-    ids = [q['id'] for q in questions]
 
+    return questions
+
+
+def getAnswers(questions:dict, apikey=apikey.so) -> dict:
     """
-        Answers request -- get answers from selected questions
+    Answers request -- get answers from selected questions
     """
     # make request
-    req = f"https://api.stackexchange.com/2.3/questions/{';'.join(map(str, ids))}/answers?order=desc&sort=activity&site=stackoverflow&filter=withbody{'&key=' + apikey if apikey else ''}"
+    ids = [q for q in questions]
+    req = f"https://api.stackexchange.com/2.3/questions/{';'.join(map(str, ids))}/answers?order=desc&sort=activity&site={QSITE}&filter=withbody{'&key=' + apikey if apikey else ''}"
+
+    # DEBUG
     print(req)
     
     # get result
@@ -83,37 +98,13 @@ def querySO(argv:list=[], stdout:str="", stderr:str="", r:int=None, n:int=1, api
 
     # parse result
     a_resp = dict(r.json())
+
     remaining = a_resp["quota_remaining"]
-    if not len(a_resp['items']): return {"error": "Got no results from query...", "remaining": remaining}
-    answer_id = a_resp['items'][0]['question_id']
-    answer = a_resp['items'][0]['body']
 
-    #code = [answer[s+len('<code>'):e] for s, e in zip([m.start() for m in re.finditer('<code>', answer)], [m.start() for m in re.finditer('</code>', answer)])]
+    if not len(a_resp['items']):
+        raise Exception("Got no results from answers request")
 
-    return {
-        'questions': [
-            {
-                'body': question,
-                'url': f'https://stackoverflow.com/questions/{question_id}/',
-                'answers': [answer]
-            },
-        ],
-        'code': "code",
-        'remaining': remaining
-    }
+    for i in a_resp['items']:
+        questions[i['question_id']].answers.append(answer(i['body'], i['answer_id'], i['score']))
 
-def dummyError():
-    print("DUMMY")
-    return {
-        'questions': [
-            {
-                'body': 'Dummy question',
-                'url': 'https://en.wikipedia.org/wiki/Newtons_(cookie)',
-                'answers': ['Dummy answer']
-            }
-        ],
-        'code': [
-            'echo meow'
-        ],
-        'remaining': float('inf')
-    }
+    return questions

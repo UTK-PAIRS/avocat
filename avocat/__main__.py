@@ -44,7 +44,7 @@ if proc.returncode != 0:
     print(f"Return code: {proc.returncode}\n")
 
     # find solution tree
-    sol = avocat.db.find_sol(out, err)
+    sol = avocat.db.find_sol(out, err, args.command)
     print(sol)
 
     # create actor and run sol tree
