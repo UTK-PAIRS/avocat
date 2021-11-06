@@ -124,10 +124,10 @@ class Actor:
 
             # get answer
             As = inquirer.prompt(Qs)
-            res = As["res"]
+            res = mapping[As["res"]]
 
         # now, check if it needs to be evaluated
-        if isinstance(res, act.Tree):
+        while isinstance(res, act.Tree):
             res = self.run(res)
 
         return res
