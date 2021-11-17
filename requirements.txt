@@ -1,2 +1,2 @@
-python-inquirer
+inquirer
 fuzzywuzzy

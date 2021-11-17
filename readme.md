@@ -1,37 +1,59 @@
-# Avocat
+# avocat
 
 Automatic Shell-Level Monitoring and Error Resolution
 University of Tennessee, Knoxville PAIRS Lab
 
 Avocat is a project which seeks to bring cutting-edge error resolution strategies directly into the terminal. Rather than users copying and pasting relevant information from their shell into a search engine, avocat automatically queries its database and Q&A services to suggest immediate resolution strategies.
 
-## example
+## Setup
+
+Avocat is designed to work on any platform Python does. For most platforms, run:
 
 ```shell
-shell> python3 -mavocat -- echo hi
-avocat> $ echo hi
-avocat> > hi
+$ pip3 install -r requirements.txt
 ```
 
+## Usage
 
-# avocat
+The main way of running avocat (`./avocat.sh`) can be invoked after setup is completed. For example:
 
-avocat is the program that is called anytime a user wishes for program execution to be monitored. It intercepts the outputs of the program saves a copy into history in system memory, also redirecting to the user. Upon unsuccessful execution, avocat queries either avocat-local or avocat-db for a resolution strategy which is then returned to the user.
+```shell
+$ ./avocat.sh -h
+usage: __main__.py [-h] [-t TEST] [-e STDERR] [-o STDOUT] [-f FILE] [command ...]
 
-This program relies on a few UNIX syscalls, so non-UNIX systems will likely encounter issues.
+avocat: your terminal advocate
 
-Dependencies: `libcurl`
+positional arguments:
+  command               command arguments
 
-Installation instructions:
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TEST, --test TEST  test number
+  -e STDERR, --stderr STDERR
+                        path to pregenerated stderr file
+  -o STDOUT, --stdout STDOUT
+                        path to pregenerated stdout file
+  -f FILE, --file FILE  path to the command file to run
 ```
-sudo apt-get install libcurl4-openssl-dev
-cd avocat
-make
-../bin/avocat
+
+To run a test (from `./test`):
+
+```shell
+$ ./avocat.sh -f test/000.sh
+
+------------------------------------------------
+Running Input...
+------------------------------------------------
+
+avocat> running file: test/000.sh
+out> hi
+out> 
+err> 
+
+------------------------------------------------
+No Problems
+------------------------------------------------
+
+avocat> Success!
 ```
-
-# avocat-local
-avocat-local is a system-level server which seeks to mediate database-client interaction and allow for process monitoring (FUTURE FEATURE)
-
-SOON TO BE REWRITTEN IN PYTHON
 

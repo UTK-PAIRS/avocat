@@ -8,6 +8,7 @@
 import avocat
 import subprocess
 import argparse
+import shlex
 
 
 # construct argument parser
@@ -21,38 +22,57 @@ parser.add_argument('command', nargs='*', help='command arguments')
 
 args = parser.parse_args()
 
+avocat.section("Running Input...")
+
 # run file / command
 if args.command:
-    avocat.msg("running command", args.command)
+    avocat.display('running command:', shlex.join(args.command))
     proc = subprocess.run(args.command, capture_output=True, text=True)
     out, err = proc.stdout, proc.stderr
 elif args.file:
-    avocat.msg("running file", args.file)
+    avocat.display('running file:', args.file)
     proc = subprocess.run(["sh", args.file], capture_output=True, text=True)
     out, err = proc.stdout, proc.stderr
 else:
     if not args.stdout or not args.stderr:
         raise Exception("'-e' and '-o' are required! (or, use '-f'). run with '--help' to see all options")
     # read contents of stdout and stderr
-    avocat.msg("trying to solve error from stdout:", args.stdout, "stderr:", args.stderr)
-    out, err = open(args.stdout, 'r').read(), open(args.stderr, 'r').read()
+    avocat.display('using out/err:', args.stdout, args.stderr)
+    with open(args.stdout, 'r') as fp:
+        out = fp.read()
+    with open(args.stderr, 'r') as fp:
+        err = fp.read()
 
-print(out, end='')
-print(err, end='')
+for line in out.split('\n'):
+    avocat.display(line, prefix='out>')
+for line in err.split('\n'):
+    avocat.display(line, prefix='err>')
+
+
 
 if proc.returncode != 0:
-    print(f"Return code: {proc.returncode}\n")
+    avocat.display("(exitcode:", proc.returncode, ")")
+
+    avocat.section("Finding Solution...")
+
+    # try to find solution
+    sol = avocat.db.find_sol(out, err)
 
     # find solution tree
-    sol = avocat.db.find_sol(out, err, args.command)
-    print(sol)
+    avocat.display("Found solutions from StackOverflow")
+    #sol = avocat.db.find_sol(out, err, args.command)
+    #print(sol)
+
+    avocat.section("Running Solution...")
 
     # create actor and run sol tree
     act = avocat.Actor()
-    print(act.run(sol))
+    act(sol)
 else:
+    avocat.section("No Problems")
+
     # successfully ran
-    pass
+    avocat.display("Success!")
 
 # create action item
 #tree = act.Print(

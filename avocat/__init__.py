@@ -1,7 +1,7 @@
-""" avocat/__init__.py - initialization for avocat
+""" avocat/__init__.py - avocat initialization/setup
 
 
-@author: Cade Brown <cade@cade.utk>
+@author: Cade Brown <me@cade.site>
 @author: Gregory Croisdale <gcroisda@vols.utk.edu>
 """
 
@@ -12,11 +12,12 @@ import subprocess
 # for choices in the terminal
 import inquirer
 
+
 # for loose string matching
 # from fuzzywuzzy import fuzz
 
-from . import act
-from . import db
+import avocat.tree as tree
+import avocat.db as db
 
 ### UTILS ###
 
@@ -26,8 +27,18 @@ def text_close(actor, A, B):
     # ratio of closeness [0.0,1.0]
     # return fuzz.partial_ratio(A, B) / 100.0
 
-def msg(*args):
-    print('avocat>', *args)
+
+def display(*args, prefix='avocat>'):
+    print(prefix, *args)
+
+def section(title):
+    """ Print section header """
+    print()
+    lx = 48
+    print('-' * lx)
+    print(title)
+    print('-' * lx)
+    print()
 
 
 """
@@ -35,8 +46,9 @@ def msg(*args):
                        help messages, and allows users to control what is executed automatically
 """
 class Actor:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+    """ An actor/user abstraction that can perform actions, and evaluate trees (see avocat.tree) """
+    def __init__(self):
+        pass
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"
@@ -46,96 +58,50 @@ class Actor:
 
     def get(self, key, defa=None):
         return self.kwargs.get(key, defa)
-
-    # run a decision tree
-    def run(self, tree):
-        if isinstance(tree, act.Tree):
-            # execute the tree
-            return tree.run(self)
-        else:
-            raise Exception(f"unexpected type for action tree (got object of type {type(tree)})")
-
-    # find a file, return a path to it
-    def find(self, name, req=False, paths=[]):
-        # add paths
-        paths = self.kwargs.get('paths', ['.']) + paths
-
-        # search through
-        rpath = None
-        for path in paths:
-            for root, dirs, files in os.walk(path):
-                for filename in files:
-                    for fullname in map(lambda x: os.path.join(root, x), files):
-                        if fullname.endswith(name):
-                            rpath = fullname
-
-        # not found, but required
-        if req and rpath is None: raise Exception(f'failed to find file {repr(name)} (looked: {paths})')
-
-        return rpath
         
-
-    # find a file (using fuzzy logic)
-    # NOTE: if give 'closefn', accept (actor, A, B) and return whether 'A' and 'B' are close (0.0 to 1.0 scale)
-    def find_close(self, name, req=False, paths=[], closefn=text_close):
-        # add paths
-        paths = self.kwargs.get('paths', ['.']) + paths
-
-        # search through
-        rpath = None
-        rclose = None
-        for path in paths:
-            for root, dirs, files in os.walk(path):
-                for fullname in map(lambda x: os.path.join(root, x), files):
-                    close = closefn(self, name, fullname)
-                    if close > 0.5:
-                        # (' ', fullname, close)
-                        # possible result
-                        if rpath is None or close > rclose:
-                            rpath = fullname
-                            rclose = close
-
-        # not found, but required
-        if req and rpath is None: raise Exception(f'failed to find file {repr(name)} (looked: {paths})')
-
-        return rpath
-
-    # perform a single choice
-    def choice(self, Q, mapping, force=False):
-        res = None
-        # make dict
-        if isinstance(mapping, list):
-            mapping = { v: v for v in mapping }
-
-        # now, seeif it should be interactive
-        if not force and self.kwargs.get('auto', False):
-            # run automatically
-            res = next(iter(mapping.values()))
-            print('(auto) ', Q, ' -> ', res, ' (from: ', list(mapping.keys()), ')', sep='')
+    def __call__(self, node: tree.Node):
+        """ Call 'actor(node)' to run a tree node """
+        if isinstance(node, tree.Node):
+            return node.run(self)
+        elif isinstance(node, (str, int, float)):
+            return node
         else:
-            # run manually
-            Qs = [
-                inquirer.List(
-                    "res",
-                    message=Q,
-                    choices=mapping,
-                ),
-            ]
+            raise Exception(f"unexpected type for action tree (got object of type {type(node)})")
 
-            # get answer
-            As = inquirer.prompt(Qs)
-            res = mapping[As["res"]]
+    ### UTILS ###
 
-        # now, check if it needs to be evaluated
-        while isinstance(res, act.Tree):
-            res = self.run(res)
+    def choose(self, prompt: str, keys: list, vals: list):
+        """ Perform a choice with 'keys' being the display values, and 'vals' being the result values """
+        Qs = [
+            inquirer.List("res", message=prompt, choices=dict(zip(keys, vals))),
+        ]
+
+        As = inquirer.prompt(Qs)
+        try:
+            res = vals[keys.index(As["res"])]
+        except:
+            display("exiting, because user hit CTRL+C")
+            exit(0)
+
+        # convert to constant
+        while isinstance(res, tree.Node):
+            res = self(res)
 
         return res
 
     def shell(self, args):
-        print('$', *args)
-        # run shell command
+        # print that we are running it
+        args = [self(a) for a in args]
+        display(*args, prefix='$')
 
-        res = subprocess.run(args, check=True)
+        # now, run it
+        proc = subprocess.run(args, capture_output=True, text=True)
+        out, err = proc.stdout, proc.stderr
 
-        return res
+        # display
+        for line in out.split('\n'):
+            display(line, prefix='out>')
+        for line in err.split('\n'):
+            display(line, prefix='err>')
+
+        return proc

@@ -4,51 +4,68 @@
 
 """
 
-import avocat.act as act
+import avocat.tree as tree
 import avocat.db.stackexchange as se
+import shlex
 
 
 # known solutions, hardcoded
 db_ = {
     "Assertion Error! Cats are bad programmers.\n":
-        act.Shell(
-            act.Const(data="echo"), 
-            act.Const(data="cats are indeed bad programmers"), 
+        tree.Shell(
+            "echo",
+            "cats are indeed bad programmers",
         ),
     "ls: cannot access 'thisdoesnotexist': No such file or directory\n":
-        act.Shell(
-            act.Const(data="echo"), 
-            act.Const(data="you are an idiot"), 
+        tree.Shell(
+            "echo",
+            "cats are indeed bad programmers",
         )
 }
 
 def find_sol(out, err, argv=[]):
-    """ find a solution tree for the given stderr/stdout (optionally, the arguments ran with) """
+    """ Attempt to find a solution for the given stdout/stderr """
     # hard coded solutions
     if err in db_:
         return db_[err]
 
+    # otherwise, search stack exchange
     Qs = se.find_Qs(err)[:4]
 
-    # just do first now
-    Q = Qs[0]
+    def from_A(a):
+        """ Generate from answer """
 
-    res = {}
-    for q in Qs:
-        rr = {}
+        cmds = []
+        for c in a.codes:
+            if len(c) > 3:
+                # TODO: make smarter filter to remove inline code/etc
+                cmds.append(tree.Shell(*shlex.split(c)))
+
+        # prepend 'all'
+        cmds = [cmds[:]] + cmds
+
+        keys = ["run all"] + [shlex.join(c.sub) for c in cmds[1:]]
+        return tree.Choose(*cmds, prompt="Which commands to run?", keys=keys)
+
+    def from_Q(q):
+        return from_A(next(iter(q.As)))
+        keys = []
+        vals = []
+
         for a in q.As:
-            cs = a.codes[0]
-            rr[cs] = act.Shell(cs.split())
-        res[q.title] = act.Choice(Q="what command to run?", data=rr)
+            keys.append(a.title)
+            vals.append(from_A(a))
 
-    return act.Choice(Q="what question is most relevant?", data=res)
-    #return act.Choice(Q="what command should i run?", data={'$ ' + text: act.Shell(text.split()) for text in Q.As[0].codes()})
+        return tree.Choose(prompt="Which answer seems right?", keys=keys)
 
-    #return codes_to_tree(extract_codes(
-    #    api.getAnswers(api.querySO("", tags=[argv[0]] if len(argv) > 0 else []))
-    #))
-    #act.Choice(Q="which looks right?", choices=["abc", "xyz"])
-    #return act.Tree()
+    keys = []
+    vals = []
+
+    for q in Qs:
+        keys.append(q.title)
+        vals.append(from_Q(q))
+    return tree.Choose(*vals, prompt="Which question seems right?", keys=keys)
+
 
 def extract_codes(questions):
     """
