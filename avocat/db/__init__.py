@@ -30,7 +30,8 @@ def find_sol(out, err, argv=[]):
         return db_[err]
 
     # otherwise, search stack exchange
-    Qs = se.find_Qs(err)[:4]
+    #Qs = se.find_Qs(err)[:4]
+    Qs = se.find_Qs(err)
 
     def from_A(a):
         """ Generate from answer """
@@ -48,7 +49,12 @@ def find_sol(out, err, argv=[]):
         return tree.Choose(*cmds, prompt="Which commands to run?", keys=keys)
 
     def from_Q(q):
-        return from_A(next(iter(q.As)))
+        try:
+            return from_A(next(iter(q.As)))
+        except:
+            # TODO: handle this better? go to next question? go back?
+            # NOTE: this may never happen to do to code which doesn't run invalid ones anyway
+            return tree.Error("No answers found for this question :*(")
         keys = []
         vals = []
 
@@ -62,8 +68,13 @@ def find_sol(out, err, argv=[]):
     vals = []
 
     for q in Qs:
-        keys.append(q.title)
-        vals.append(from_Q(q))
+        # only allow a maximum of 4 results, to not overwhelm the user
+        if len(keys) >= 4:
+            break
+        # check and make sure there is at least 1 
+        if q.As:
+            keys.append(q.title)
+            vals.append(from_Q(q))
     return tree.Choose(*vals, prompt="Which question seems right?", keys=keys)
 
 

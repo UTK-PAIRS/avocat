@@ -27,12 +27,14 @@ avocat.section("Running Input...")
 # run file / command
 if args.command:
     avocat.display('running command:', shlex.join(args.command))
-    proc = subprocess.run(args.command, capture_output=True, text=True)
-    out, err = proc.stdout, proc.stderr
+    succ, out, err = avocat.shell(args.command)
+    #proc = subprocess.run(args.command, capture_output=True, text=True)
+    #out, err = proc.stdout, proc.stderr
 elif args.file:
     avocat.display('running file:', args.file)
-    proc = subprocess.run(["sh", args.file], capture_output=True, text=True)
-    out, err = proc.stdout, proc.stderr
+    succ, out, err = avocat.shell(["sh", args.file])
+    #proc = subprocess.run(["sh", args.file], capture_output=True, text=True)
+    #out, err = proc.stdout, proc.stderr
 else:
     if not args.stdout or not args.stderr:
         raise Exception("'-e' and '-o' are required! (or, use '-f'). run with '--help' to see all options")
@@ -43,16 +45,14 @@ else:
     with open(args.stderr, 'r') as fp:
         err = fp.read()
 
-for line in out.split('\n'):
-    avocat.display(line, prefix='out>')
-for line in err.split('\n'):
-    avocat.display(line, prefix='err>')
+    for line in out.split('\n'):
+        avocat.display(line, prefix='out>')
+    for line in err.split('\n'):
+        avocat.display(line, prefix='err>')
 
 
 
-if proc.returncode != 0:
-    avocat.display("(exitcode:", proc.returncode, ")")
-
+if not succ:
     avocat.section("Finding Solution...")
 
     # try to find solution

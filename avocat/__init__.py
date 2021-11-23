@@ -8,6 +8,7 @@
 
 import os
 import subprocess
+import threading
 
 # for choices in the terminal
 import inquirer
@@ -41,6 +42,42 @@ def section(title):
     print()
 
 
+
+def shell(args):
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.stdout, proc.stderr
+
+    def run(res, fp, prefix):
+        while True:
+            line = fp.readline()
+            if not line:
+                break
+            line = line.decode('utf-8')
+            print(prefix + line.strip())
+    # content of each
+    rout = []
+    rerr = []
+
+
+    # launch threads to display in real time
+    tout = threading.Thread(target=run, args=(rout, out, 'out> '))
+    terr = threading.Thread(target=run, args=(rerr, err, 'err> '))
+
+    tout.start()
+    terr.start()
+
+    proc.wait()
+
+    tout.join()
+    terr.join()
+
+    # return success, stdout, stderr
+    return proc.returncode == 0, "".join(rout), "".join(rerr)
+
+class ActorError(Exception):
+    """ An error from an actor """
+    pass
+
 """
     avocat.act.Actor - represents a virtual user (i.e. personifying the avocat process itself), with permissions, and
                        help messages, and allows users to control what is executed automatically
@@ -69,6 +106,25 @@ class Actor:
             raise Exception(f"unexpected type for action tree (got object of type {type(node)})")
 
     ### UTILS ###
+
+    def print(self, *args):
+        r = []
+        for a in args:
+            while isinstance(a, tree.Node):
+                a = self(a)
+            r.append(a)
+
+        display(*r)
+
+    def error(self, *args):
+        r = []
+        for a in args:
+            while isinstance(a, tree.Node):
+                a = self(a)
+            r.append(a)
+
+        # raise an error
+        raise ActorError(' '.join(map(str, r)))
 
     def choose(self, prompt: str, keys: list, vals: list):
         """ Perform a choice with 'keys' being the display values, and 'vals' being the result values """

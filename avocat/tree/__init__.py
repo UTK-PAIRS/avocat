@@ -53,12 +53,12 @@ class Node:
 class Print(Node):
     """ Prints a message to the console """
     def run(self, actor):
-        return actor.print(self)
+        return actor.print(*self.sub)
 
 class Error(Node):
     """ Prints an error message to the console, stops the program """
     def run(self, actor):
-        return actor.error(self)
+        return actor.error(*self.sub)
 
 class Choose(Node):
     """ Prompts the user to choose an option """
