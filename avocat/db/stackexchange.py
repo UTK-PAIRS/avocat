@@ -5,6 +5,7 @@
 
 import functools
 
+import html
 import requests
 import urllib.parse
 
@@ -12,7 +13,8 @@ import urllib.parse
 apikey_ = "d3qKMek1GCXs8ED6ee6ANA(("
 
 # what StackExchange site should we use?
-site_ = "askubuntu"
+site_ = "stackoverflow"
+#site_ = "askubuntu"
 
 class Post:
     """ Represents either a question or an answer. Provides utilities """
@@ -103,8 +105,8 @@ def find_Qs(query, num=1, tags=[]):
 
     # generate results
     for a in aresp_data["items"]:
-        qas[a["question_id"]].append(A(a["answer_id"], a["body"], a["score"]))
+        qas[a["question_id"]].append(A(a["answer_id"], html.unescape(a["body"]), a["score"]))
 
     # give 'As_' for precomputation
-    return [Q(q["question_id"], q["title"], q["body"], q["score"], As_=qas[q["question_id"]]) for q in resp_data['items']]
+    return [Q(q["question_id"], html.unescape(q["title"]), html.unescape(q["body"]), q["score"], As_=qas[q["question_id"]]) for q in resp_data['items']]
 

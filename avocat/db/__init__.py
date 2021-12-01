@@ -8,7 +8,6 @@ import avocat.tree as tree
 import avocat.db.stackexchange as se
 import shlex
 
-
 # known solutions, hardcoded
 db_ = {
     "Assertion Error! Cats are bad programmers.\n":
@@ -29,9 +28,20 @@ def find_sol(out, err, argv=[]):
     if err in db_:
         return db_[err]
 
+    # right now, reduce to last line
+    err = list(filter(lambda x: x, err.split("\n")))[-1]
+
     # otherwise, search stack exchange
     #Qs = se.find_Qs(err)[:4]
     Qs = se.find_Qs(err)
+
+    def smallstr(s):
+        " method to keep strings/titles short to prevent overly long messages"
+        thresh = 60
+        if len(s) > thresh:
+            return s[:thresh-3] + "..."
+        else:
+            return s
 
     def from_A(a):
         """ Generate from answer """
@@ -45,8 +55,9 @@ def find_sol(out, err, argv=[]):
         # prepend 'all'
         cmds = [cmds[:]] + cmds
 
-        keys = ["run all"] + [shlex.join(c.sub) for c in cmds[1:]]
-        return tree.Choose(*cmds, prompt="Which commands to run?", keys=keys)
+        keys = ["run all"] + [smallstr(shlex.join(c.sub)) for c in cmds[1:]]
+        # give 'multi=True' so that multiple may be ran
+        return tree.Choose(*cmds, prompt="Which commands to run? (press space to toggle)", keys=keys, multi=True, default="run all")
 
     def from_Q(q):
         try:
@@ -59,7 +70,7 @@ def find_sol(out, err, argv=[]):
         vals = []
 
         for a in q.As:
-            keys.append(a.title)
+            keys.append(smallstr(a.title))
             vals.append(from_A(a))
 
         return tree.Choose(prompt="Which answer seems right?", keys=keys)
@@ -68,14 +79,14 @@ def find_sol(out, err, argv=[]):
     vals = []
 
     for q in Qs:
-        # only allow a maximum of 4 results, to not overwhelm the user
-        if len(keys) >= 4:
+        # only allow a maximum number of results, to not overwhelm the user
+        if len(keys) >= 10:
             break
         # check and make sure there is at least 1 
         if q.As:
-            keys.append(q.title)
+            keys.append(smallstr(q.title))
             vals.append(from_Q(q))
-    return tree.Choose(*vals, prompt="Which question seems right?", keys=keys)
+    return tree.Choose(*vals, prompt="Which is the most relevant?", keys=keys)
 
 
 def extract_codes(questions):

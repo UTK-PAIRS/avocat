@@ -53,6 +53,7 @@ def shell(args):
             if not line:
                 break
             line = line.decode('utf-8')
+            res.append(line)
             print(prefix + line.strip())
     # content of each
     rout = []
@@ -100,17 +101,20 @@ class Actor:
         """ Call 'actor(node)' to run a tree node """
         if isinstance(node, tree.Node):
             return node.run(self)
+        elif isinstance(node, list):
+            return list(map(lambda x: self(x), node))
         elif isinstance(node, (str, int, float)):
             return node
         else:
-            raise Exception(f"unexpected type for action tree (got object of type {type(node)})")
+            return node
+        #    raise Exception(f"unexpected type for action tree (got object of type {type(node)})")
 
     ### UTILS ###
 
     def print(self, *args):
         r = []
         for a in args:
-            while isinstance(a, tree.Node):
+            while isinstance(a, (tree.Node, list)):
                 a = self(a)
             r.append(a)
 
@@ -126,24 +130,48 @@ class Actor:
         # raise an error
         raise ActorError(' '.join(map(str, r)))
 
-    def choose(self, prompt: str, keys: list, vals: list):
-        """ Perform a choice with 'keys' being the display values, and 'vals' being the result values """
-        Qs = [
-            inquirer.List("res", message=prompt, choices=dict(zip(keys, vals))),
-        ]
+    def choose(self, prompt: str, keys: list, vals: list, multi=False, default=None):
+        """ Perform a choice with 'keys' being the display values, and 'vals' being the result values 
+        
+        Give 'multi=True' to allow multiple choices
+        """
+        if multi:
+            Qs = [
+                inquirer.Checkbox("res", message=prompt, choices=dict(zip(keys, vals)), default=default),
+            ]
 
-        As = inquirer.prompt(Qs)
-        try:
-            res = vals[keys.index(As["res"])]
-        except:
-            display("exiting, because user hit CTRL+C")
-            exit(0)
+            As = inquirer.prompt(Qs)
+            try:
+                res = []
+                for v in As['res']:
+                    res.append(vals[keys.index(v)])
+            except KeyboardInterrupt:
+                display("exiting, because user hit CTRL+C")
+                exit(0)
 
-        # convert to constant
-        while isinstance(res, tree.Node):
-            res = self(res)
+            # convert to constant
+            while isinstance(res, (tree.Node, list)):
+                res = self(res)
 
-        return res
+            return res
+
+        else:
+            Qs = [
+                inquirer.List("res", message=prompt, choices=dict(zip(keys, vals)), default=default),
+            ]
+
+            As = inquirer.prompt(Qs)
+            try:
+                res = vals[keys.index(As["res"])]
+            except KeyboardInterrupt:
+                display("exiting, because user hit CTRL+C")
+                exit(0)
+
+            # convert to constant
+            while isinstance(res, (tree.Node, list)):
+                res = self(res)
+
+            return res
 
     def shell(self, args):
         # print that we are running it
@@ -151,13 +179,40 @@ class Actor:
         display(*args, prefix='$')
 
         # now, run it
-        proc = subprocess.run(args, capture_output=True, text=True)
+        proc = subprocess.run(args, capture_output=True, text=True, shell=True)
         out, err = proc.stdout, proc.stderr
+            
+        if proc.returncode != 0:
+            section("While Solving An Error, Another Occured...")
 
-        # display
-        for line in out.split('\n'):
-            display(line, prefix='out>')
-        for line in err.split('\n'):
-            display(line, prefix='err>')
+            # display
+            for line in out.split('\n'):
+                display(line, prefix='out>')
+            for line in err.split('\n'):
+                display(line, prefix='err>')
 
-        return proc
+            section("Finding Solution...")
+
+            # try to find solution
+            sol = db.find_sol(out, err)
+
+            # find solution tree
+            display("Found solutions from StackOverflow")
+            #sol = avocat.db.find_sol(out, err, args.command)
+            #print(sol)
+
+            section("Running Solution...")
+
+            # run solution
+            self(sol)
+
+            return proc
+
+        else:
+            # display
+            for line in out.split('\n'):
+                display(line, prefix='out>')
+            for line in err.split('\n'):
+                display(line, prefix='err>')
+
+            return proc

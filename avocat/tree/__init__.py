@@ -63,7 +63,7 @@ class Error(Node):
 class Choose(Node):
     """ Prompts the user to choose an option """
     def run(self, actor):
-        return actor.choose(self['prompt'], self['keys'], self.sub)
+        return actor.choose(self['prompt'], self['keys'], self.sub, multi=self.get('multi', False), default=self.get('default', None))
 
 class Shell(Node):
     """ Runs a shell command """
